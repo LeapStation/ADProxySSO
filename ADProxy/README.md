@@ -9,7 +9,7 @@ The app authenticates users with Azure AD (OpenID Connect), then requests a mach
 What I changed
 
 - Added robust logging and diagnostic support for authentication failures: when an OpenID Connect authentication failure happens the app stores a JSON blob describing the error in the distributed memory cache and redirects the user to /Error?errorid={id}. The Error page reads the cached details and displays them to aid debugging.
-- Configured local settings to use HTTPS port 5001 and set the default bibUrl to https://localhost:5001 (edit as needed).
+- Configured local settings to use HTTPS port 5001 and set the default serviceUrl to https://localhost:5001 (edit as needed).
 - Added placeholders and example configuration values in `appsettings.local.json`.
 
 Important configuration keys
@@ -27,7 +27,7 @@ Important configuration keys
   - ClientEndpoint: Token endpoint URL (e.g. https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token)
   - ClientScope: Scope to request (for client credentials, usually the API app id URI + '/.default')
 
-- bibUrl: The base URL for the BiB platform (used to POST to {bibUrl}/epd/access-ad). For local testing, set to https://localhost:5001.
+- serviceUrl: The base URL for the BiB platform (used to POST to {serviceUrl}/epd/access-ad). For local testing, set to https://localhost:5001.
 
 - TokenCacheMinutes: How long to cache the client token in distributed cache (minutes).
 
