@@ -1,18 +1,16 @@
-ADProxy - AAD to Born-in-Belgium (BiB) proxy
+# ADProxy - AAD to Born-in-Belgium (BiB) proxy
 
-Overview
+### Overview
 
-ADProxy is a small ASP.NET Core Razor Pages app that acts as a proxy between a local Azure AD (B2C) tenancy and the Born-in-Belgium (BiB) Professionals platform, following the flow documented at https://leapstation.eu/doc/bib.
+ADProxy is a small ASP.NET Core Razor Pages app that acts as a proxy between a local Azure AD (B2C) tenancy and LeapStation Healthcare services like Born-in-Belgium, CuraeConsent, Neoparent, ...
 
-The app authenticates users with Azure AD (OpenID Connect), then requests a machine-to-machine token from an OAuth token endpoint (configured under TokenSettings) to call the BiB endpoint /epd/access-ad. The BiB API responds with a URL which the user is redirected to.
+This is a backup service for use cases where direct EPD integration is not possible, and the user needs to authenticate with their Azure AD credentials to access BiB services.
 
-What I changed
+Contact support@leapstation.eu for access credentials. For The Born-in-Belgium (BiB) Professionals platform, following the flow documented at https://leapstation.eu/doc/bib (the API is similar except that we do not pass patient information).
 
-- Added robust logging and diagnostic support for authentication failures: when an OpenID Connect authentication failure happens the app stores a JSON blob describing the error in the distributed memory cache and redirects the user to /Error?errorid={id}. The Error page reads the cached details and displays them to aid debugging.
-- Configured local settings to use HTTPS port 5001 and set the default serviceUrl to https://localhost:5001 (edit as needed).
-- Added placeholders and example configuration values in `appsettings.local.json`.
+The app authenticates users with Azure AD (OpenID Connect), then requests a machine-to-machine token from an OAuth token endpoint (configured under TokenSettings) to call the BiB endpoint /epd/access-ad. The BiB / Neoparent API responds with a URL which the user is redirected to.
 
-Important configuration keys
+### Important configuration keys
 
 - AzureAd: Section used by Microsoft.Identity.Web for OpenID Connect. Common keys include:
   - Instance: Azure AD B2C instance URL (e.g. https://<tenant>.b2clogin.com)
@@ -21,19 +19,19 @@ Important configuration keys
   - CallbackPath: OIDC callback path
   - SignUpSignInPolicyId / EditProfilePolicyId: B2C policies if using B2C
 
-- TokenSettings: Used to request a machine-to-machine token to call BiB
+- TokenSettings: Used to request a machine-to-machine token to call BiB / Neoparent / ...
   - ClientId
   - ClientSecret
   - ClientEndpoint: Token endpoint URL (e.g. https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token)
   - ClientScope: Scope to request (for client credentials, usually the API app id URI + '/.default')
 
-- serviceUrl: The base URL for the BiB platform (used to POST to {serviceUrl}/epd/access-ad). For local testing, set to https://localhost:5001.
+- serviceUrl: The base URL for the BiB / Neoparent / ... platform (used to POST to {serviceUrl}/epd/access-ad). For local testing, set to https://localhost:5001.
 
 - TokenCacheMinutes: How long to cache the client token in distributed cache (minutes).
 
-Running locally (Development)
+### Running locally (Development)
 
-1. Ensure `appsettings.local.json` contains your Azure AD and TokenSettings values. For local testing we configure Kestrel to listen on https://localhost:5001.
+1. Ensure  your Azure AD and TokenSettings values are available for configuration (files or environment variables).
 
 2. From the project folder (where ADProxy.csproj lives) run:
 
@@ -41,7 +39,7 @@ Running locally (Development)
 dotnet run --project ADProxy.csproj
 ```
 
-This will start the app; open https://localhost:5001 in your browser. Ensure you have a valid certificate for localhost or trust the dev certificate (dotnet dev-certs https --trust).
+This will start the app; open the configured URL in the browser.
 
 Error diagnostics
 
@@ -52,15 +50,5 @@ When an authentication failure happens the app will:
 
 This helps correlate logs and user-visible errors during testing.
 
-Security notes
-
-- `appsettings.local.json` may contain secrets (ClientSecret). Never commit secrets to source control. Use environment variables or a secret store (KeyVault) in production.
-- The in-memory distributed cache is only suitable for single-instance development scenarios. For production use a shared cache (Redis, SQL distributed cache, etc.) so multiple instances share error state.
-
-Next steps / suggestions
-
-- Add structured logging sinks (e.g. Seq, Application Insights) for better observability.
-- Replace DistributedMemoryCache with Redis for production if you run multiple instances.
-- Harden error display to avoid leaking sensitive data in production (the /Error page currently displays raw JSON for debugging).
-
-
+### Customization
+Depending on your setup it might be necessary to customize claim mapping (e.g. if BiB expects a specific claim for the user identifier), or inject additional claims (e.g. organization name). However, for most cases the basic information should be sufficient.
