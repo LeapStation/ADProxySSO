@@ -60,7 +60,6 @@ public class IndexModel : PageModel
             new ClientCredentialsTokenRequest
             {
                 Address = _tokenSettings.ClientEndpoint,
-
                 ClientId = _tokenSettings.ClientId,
                 ClientSecret = _tokenSettings.ClientSecret,
                 Scope = _tokenSettings.ClientScope
@@ -138,7 +137,7 @@ public class IndexModel : PageModel
 
         var adUser = new EpdActorModel()
         {
-            DisplayName = $"{firstName.Value} {surname.Value}".Trim(),
+            DisplayName = $"{firstnameStr} {surnameStr}".Trim(),
             Uid = userId.Value
         };
         var epdAccessModel = new EpdAccessModel()

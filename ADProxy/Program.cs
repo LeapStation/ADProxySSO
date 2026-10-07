@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.Identity.Web;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
@@ -16,7 +17,30 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
 // Attach the authentication-failed event via configuration of the OpenIdConnectOptions
 builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
 {
+    // Authorization Code Flow with PKCE (public client, no client secret)
+    options.ResponseType = OpenIdConnectResponseType.Code;
+    options.UsePkce = true;
+
     options.Events ??= new OpenIdConnectEvents();
+
+    var existingRedirect = options.Events.OnRedirectToIdentityProvider;
+    options.Events.OnRedirectToIdentityProvider = async ctx =>
+    {
+        if (existingRedirect != null)
+        {
+            await existingRedirect(ctx);
+        }
+
+        // Fail fast if PKCE is ever disabled or downgraded
+        var message = ctx.ProtocolMessage;
+        if (message.ResponseType != OpenIdConnectResponseType.Code
+            || string.IsNullOrEmpty(message.GetParameter("code_challenge"))
+            || message.GetParameter("code_challenge_method") != "S256")
+        {
+            throw new InvalidOperationException("Authorization Code Flow with PKCE (S256) is required.");
+        }
+    };
+
     options.Events.OnAuthenticationFailed = async ctx =>
     {
         try
