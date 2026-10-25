@@ -29,6 +29,30 @@ The app authenticates users with Azure AD (OpenID Connect), then requests a mach
 
 - TokenCacheMinutes: How long to cache the client token in distributed cache (minutes).
 
+### Login flow (Authorization Code + PKCE)
+
+User login uses the OpenID Connect Authorization Code Flow with PKCE (S256). The app is a public client: no client secret is configured under AzureAd, PKCE protects the code exchange. The app refuses to start a login without `code_challenge` / `S256`.
+
+App registration requirements:
+- "Allow public client flows" enabled (Azure AD), or a public/native client (B2C).
+- The redirect URI (`https://<host><CallbackPath>`) registered under a public-client platform (SPA or Mobile/Desktop), not "Web". Otherwise code redemption fails with `AADSTS7000218`.
+
+#### Example: Microsoft Entra ID (regular Azure AD, not B2C)
+
+```json
+"AzureAd": {
+  "Instance": "https://login.microsoftonline.com/",
+  "TenantId": "<tenant GUID or domain>",
+  "ClientId": "<application (client) id>",
+  "CallbackPath": "/signin-oidc",
+  "SignedOutCallbackPath": "/signout-callback-oidc"
+}
+```
+
+No policy ids and no client secret. Register the redirect URI `https://<host>/signin-oidc` under the "Mobile and desktop applications" platform and enable "Allow public client flows".
+
+Claims: a default Entra v2 id_token contains `oid`, `tid`, `sub`, `name` and `preferred_username` (UPN). `given_name`, `family_name` and `email` are only present when added as optional claims in the app registration (Token configuration). The proxy works with `name` alone; the user id (`oid`) is required.
+
 ### Running locally (Development)
 
 1. Ensure  your Azure AD and TokenSettings values are available for configuration (files or environment variables).

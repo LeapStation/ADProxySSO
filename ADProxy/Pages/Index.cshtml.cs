@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using ADProxy.Models;
@@ -11,6 +12,7 @@ using Duende.IdentityModel.Client;
 using EnsureThat;
 using Flurl.Http;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Caching.Distributed;
@@ -28,6 +30,7 @@ public class IndexModel : PageModel
     private readonly string? _serviceUrl;
     private readonly DistributedCacheEntryOptions _cacheOptions;
     private readonly TokenSettings _tokenSettings;
+    private readonly bool _active;
 
     public IndexModel(
         ILogger<IndexModel> logger,
@@ -39,6 +42,7 @@ public class IndexModel : PageModel
         _cache = cache;
         _httpClientFactory = httpClientFactory;
         _serviceUrl = configuration.GetValue<string>("serviceUrl");
+        _active = configuration.GetValue<bool>("active");
         var cacheMinutes = configuration.GetValue<int>("TokenCacheMinutes", 2);
         _cacheOptions = new DistributedCacheEntryOptions()
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(cacheMinutes));
@@ -60,7 +64,6 @@ public class IndexModel : PageModel
             new ClientCredentialsTokenRequest
             {
                 Address = _tokenSettings.ClientEndpoint,
-
                 ClientId = _tokenSettings.ClientId,
                 ClientSecret = _tokenSettings.ClientSecret,
                 Scope = _tokenSettings.ClientScope
@@ -138,13 +141,17 @@ public class IndexModel : PageModel
 
         var adUser = new EpdActorModel()
         {
-            DisplayName = $"{firstName.Value} {surname.Value}".Trim(),
+            DisplayName = $"{firstnameStr} {surnameStr}".Trim(),
             Uid = userId.Value
         };
         var epdAccessModel = new EpdAccessModel()
         {
             Actor = adUser
         };
+        if (!_active)
+        {
+            return Content("Test mode");
+        }
 
         var url = await $"{_serviceUrl}/epd/access-ad"
             .WithOAuthBearerToken(token)
